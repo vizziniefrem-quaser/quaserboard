@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply text-gray-900 bg-gray-50;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Scrollbar sottile */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+}
+
+@layer components {
+  /* Bottoni base */
+  .btn-primary {
+    @apply bg-[#1F3864] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#2a4d8a] transition-colors font-medium;
+  }
+  .btn-secondary {
+    @apply bg-white border border-gray-200 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors text-gray-700;
+  }
+
+  /* Card */
+  .card {
+    @apply bg-white border border-gray-200 rounded-xl p-5;
+  }
+
+  /* Badge stati progetto */
+  .badge-blue   { @apply bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded-full font-medium; }
+  .badge-green  { @apply bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded-full font-medium; }
+  .badge-amber  { @apply bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-medium; }
+  .badge-red    { @apply bg-red-100 text-red-800 text-xs px-2.5 py-0.5 rounded-full font-medium; }
+  .badge-gray   { @apply bg-gray-100 text-gray-600 text-xs px-2.5 py-0.5 rounded-full font-medium; }
+  .badge-pink   { @apply bg-pink-100 text-pink-800 text-xs px-2.5 py-0.5 rounded-full font-medium; }
+}

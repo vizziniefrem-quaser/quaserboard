@@ -1,0 +1,404 @@
+// Quaser Board — Schema Prisma completo
+// Database: PostgreSQL (Neon serverless)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── AUTH ───────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  collaboratore Collaboratore?
+  commenti      Commento[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+// ─── SOCIETÀ ────────────────────────────────────────────
+
+model Societa {
+  id          String   @id @default(cuid())
+  nome        String
+  tipo        String   // "srl" | "studio" | "caa"
+  descrizione String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  progetti              Progetto[]
+  collaboratoriSocieta  CollaboratoreSocieta[]
+  trasferte             Trasferta[]
+}
+
+// ─── COLLABORATORI ──────────────────────────────────────
+
+enum RuoloUtente {
+  ADMIN
+  COLLABORATORE
+  ESTERNO
+  CLIENTE
+}
+
+enum TipoContratto {
+  INDETERMINATO
+  DETERMINATO
+  PARTITA_IVA
+  OCCASIONALE
+}
+
+model Collaboratore {
+  id              String        @id @default(cuid())
+  userId          String        @unique
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ruolo           RuoloUtente   @default(COLLABORATORE)
+  nome            String
+  cognome         String
+  codiceFiscale   String?
+  dataNascita     DateTime?
+  luogoNascita    String?
+  provinciaNascita String?
+  telefono        String?
+  indirizzo       String?
+  tipoContratto   TipoContratto @default(PARTITA_IVA)
+  partitaIva      String?
+  dataInizio      DateTime?
+  dataFine        DateTime?
+  note            String?
+  attivo          Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  societa         CollaboratoreSocieta[]
+  mezzi           MezzoTrasporto[]
+  tariffe         TariffaKm[]
+  costiAnnui      CostoAnnuo[]
+  trasferte       Trasferta[]
+  lavori          Lavoro[]
+  progettiAssegnati ProgettoCollaboratore[]
+}
+
+model CollaboratoreSocieta {
+  id              String        @id @default(cuid())
+  collaboratoreId String
+  societaId       String
+  ruoloInSocieta  String?
+  dataInizio      DateTime      @default(now())
+  collaboratore   Collaboratore @relation(fields: [collaboratoreId], references: [id], onDelete: Cascade)
+  societa         Societa       @relation(fields: [societaId], references: [id], onDelete: Cascade)
+  @@unique([collaboratoreId, societaId])
+}
+
+model MezzoTrasporto {
+  id              String        @id @default(cuid())
+  collaboratoreId String
+  collaboratore   Collaboratore @relation(fields: [collaboratoreId], references: [id], onDelete: Cascade)
+  tipo            String        // "Auto" | "Moto" | "Treno" | "Aereo" | "Altro"
+  marca           String?
+  modello         String?
+  targa           String?
+  principale      Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+}
+
+model TariffaKm {
+  id              String        @id @default(cuid())
+  collaboratoreId String
+  collaboratore   Collaboratore @relation(fields: [collaboratoreId], references: [id], onDelete: Cascade)
+  anno            Int
+  tariffa         Decimal       @db.Decimal(10, 4)
+  note            String?
+  createdAt       DateTime      @default(now())
+  @@unique([collaboratoreId, anno])
+}
+
+model CostoAnnuo {
+  id              String        @id @default(cuid())
+  collaboratoreId String
+  collaboratore   Collaboratore @relation(fields: [collaboratoreId], references: [id], onDelete: Cascade)
+  anno            Int
+  costoOrario     Decimal?      @db.Decimal(10, 2)
+  oreStimate      Int?
+  costoTotale     Decimal       @db.Decimal(10, 2)
+  lavoroGenerato  Decimal?      @db.Decimal(10, 2)
+  note            String?
+  createdAt       DateTime      @default(now())
+  @@unique([collaboratoreId, anno])
+}
+
+// ─── CLIENTI / ANAGRAFICA ───────────────────────────────
+
+model Cliente {
+  id              String    @id @default(cuid())
+  codice          String    @unique // CLI-0001
+  codiceCaa       String?   // CAA-0001
+  ragioneSociale  String
+  partitaIva      String?
+  codiceFiscale   String?
+  indirizzo       String?
+  comune          String?
+  cap             String?
+  provincia       String?
+  telefono        String?
+  email           String?
+  attivo          Boolean   @default(true)
+  note            String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  referenti       Referente[]
+  documenti       Documento[]
+  siti            SitoAziendale[]
+  servizi         ServizioCliente[]
+  certificazioni  Certificazione[]
+  progetti        Progetto[]
+  lavori          Lavoro[]
+}
+
+model Referente {
+  id              String    @id @default(cuid())
+  clienteId       String
+  cliente         Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  nome            String
+  cognome         String
+  ruolo           String?
+  telefono        String?
+  email           String?
+  predefinito     Boolean   @default(false) // riceve alert scadenze
+  createdAt       DateTime  @default(now())
+}
+
+model Documento {
+  id              String    @id @default(cuid())
+  clienteId       String
+  cliente         Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  nome            String
+  tipo            String?
+  url             String?   // Vercel Blob URL
+  scadenza        DateTime?
+  stato           String    @default("OK") // "OK" | "In scadenza" | "Mancante" | "Scaduto"
+  alertAttivo     Boolean   @default(true)
+  noteInterne     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model SitoAziendale {
+  id              String    @id @default(cuid())
+  clienteId       String
+  cliente         Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  denominazione   String
+  comune          String?
+  lat             Decimal?  @db.Decimal(10, 6)
+  lon             Decimal?  @db.Decimal(10, 6)
+  superficie      Decimal?  @db.Decimal(10, 2)
+  kmzUrl          String?
+  note            String?
+  createdAt       DateTime  @default(now())
+}
+
+model ServizioCliente {
+  id              String    @id @default(cuid())
+  clienteId       String
+  cliente         Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  nome            String    // "Fascicolo" | "DVR" | "HACCP" | ...
+  attivo          Boolean   @default(false)
+  dataScadenza    DateTime?
+  alertMesi       Int?      @default(9)
+  documentoUrl    String?
+  note            String?
+  updatedAt       DateTime  @updatedAt
+}
+
+model Certificazione {
+  id              String    @id @default(cuid())
+  clienteId       String
+  cliente         Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  nome            String    // "GlobalGAP" | "GRASP" | "ISO 9001" | ...
+  stato           String    @default("Mancante") // "Valida" | "In scadenza" | "Mancante" | "N/A"
+  scadenza        DateTime?
+  documentoUrl    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// ─── PROGETTI ───────────────────────────────────────────
+
+enum StatoProgetto {
+  DA_INIZIARE
+  IN_CORSO
+  IN_ATTESA_DOCUMENTI
+  CONSEGNATO
+  DA_FATTURARE
+  CHIUSO
+}
+
+model Progetto {
+  id              String        @id @default(cuid())
+  codice          String        @unique // PRJ-001
+  nome            String
+  clienteId       String
+  cliente         Cliente       @relation(fields: [clienteId], references: [id])
+  societaId       String
+  societa         Societa       @relation(fields: [societaId], references: [id])
+  stato           StatoProgetto @default(DA_INIZIARE)
+  dataInizio      DateTime?
+  dataScadenza    DateTime?
+  note            String?
+  prezzoCliente   Decimal?      @db.Decimal(10, 2)
+  statoPagamento  String?       // "Da fatturare" | "Fatturato" | "Pagato"
+  scadenzaPagamento DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  collaboratori   ProgettoCollaboratore[]
+  fasi            FaseProgetto[]
+  trasferte       Trasferta[]
+  vociCosto       VoceCosto[]
+  lavori          Lavoro[]
+  commenti        Commento[]
+}
+
+model ProgettoCollaboratore {
+  id              String        @id @default(cuid())
+  progettoId      String
+  progetto        Progetto      @relation(fields: [progettoId], references: [id], onDelete: Cascade)
+  collaboratoreId String
+  collaboratore   Collaboratore @relation(fields: [collaboratoreId], references: [id], onDelete: Cascade)
+  ruolo           String?
+  @@unique([progettoId, collaboratoreId])
+}
+
+model FaseProgetto {
+  id              String    @id @default(cuid())
+  progettoId      String
+  progetto        Progetto  @relation(fields: [progettoId], references: [id], onDelete: Cascade)
+  nome            String    // "Commerciale" | "Questionario" | ...
+  ordine          Int
+  stato           String    @default("todo") // "todo" | "active" | "done"
+  note            String?
+  completataAt    DateTime?
+  createdAt       DateTime  @default(now())
+
+  tasks           TaskFase[]
+}
+
+model TaskFase {
+  id              String        @id @default(cuid())
+  faseId          String
+  fase            FaseProgetto  @relation(fields: [faseId], references: [id], onDelete: Cascade)
+  testo           String
+  completato      Boolean       @default(false)
+  ordine          Int
+}
+
+model VoceCosto {
+  id              String    @id @default(cuid())
+  progettoId      String
+  progetto        Progetto  @relation(fields: [progettoId], references: [id], onDelete: Cascade)
+  descrizione     String
+  categoria       String    // "Manodopera" | "Trasferta" | "Materiali" | ...
+  importo         Decimal   @db.Decimal(10, 2)
+  note            String?
+  createdAt       DateTime  @default(now())
+}
+
+// ─── TRASFERTE ──────────────────────────────────────────
+
+model Trasferta {
+  id              String        @id @default(cuid())
+  progettoId      String
+  progetto        Progetto      @relation(fields: [progettoId], references: [id], onDelete: Cascade)
+  collaboratoreId String
+  collaboratore   Collaboratore @relation(fields: [collaboratoreId], references: [id])
+  societaId       String?
+  societa         Societa?      @relation(fields: [societaId], references: [id])
+  data            DateTime
+  destinazione    String
+  mezzo           String        // "Auto" | "Treno" | "Aereo" | "Altro"
+  km              Int?
+  costoAltro      Decimal?      @db.Decimal(10, 2)
+  tariffa         Decimal?      @db.Decimal(10, 4) // snapshot tariffa al momento
+  rimborso        Decimal?      @db.Decimal(10, 2) // calcolato
+  note            String?
+  createdAt       DateTime      @default(now())
+}
+
+// ─── LAVORI ─────────────────────────────────────────────
+
+model Lavoro {
+  id              String        @id @default(cuid())
+  progettoId      String?
+  progetto        Progetto?     @relation(fields: [progettoId], references: [id])
+  clienteId       String
+  cliente         Cliente       @relation(fields: [clienteId], references: [id])
+  collaboratoreId String
+  collaboratore   Collaboratore @relation(fields: [collaboratoreId], references: [id])
+  data            DateTime
+  tipo            String        // "Consulenza" | "Sopralluogo" | "Fascicolo" | ...
+  descrizione     String
+  ore             Decimal?      @db.Decimal(5, 1)
+  importo         Decimal?      @db.Decimal(10, 2)
+  stato           String        @default("Completato")
+  noteInterne     String?       // solo admin
+  createdAt       DateTime      @default(now())
+}
+
+// ─── COMMENTI ───────────────────────────────────────────
+
+model Commento {
+  id              String    @id @default(cuid())
+  progettoId      String
+  progetto        Progetto  @relation(fields: [progettoId], references: [id], onDelete: Cascade)
+  autorId         String
+  autore          User      @relation(fields: [autorId], references: [id])
+  testo           String    @db.Text
+  faseNome        String?
+  stato           String    @default("open") // "open" | "done"
+  risposta        String?   @db.Text
+  rispostoAt      DateTime?
+  createdAt       DateTime  @default(now())
+}

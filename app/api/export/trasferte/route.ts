@@ -23,7 +23,7 @@ export async function GET(req: Request) {
     const MESI = ["", "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio",
       "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "Content-Disposition": `attachment; filename="rimborso_trasferte_${MESI[mese]}_${anno}.xlsx"`,

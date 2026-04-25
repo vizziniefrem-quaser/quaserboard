@@ -132,3 +132,4 @@ Ricorda di aggiungere le variabili d'ambiente anche su Vercel Dashboard → Sett
 - [ ] Notifiche WhatsApp (Twilio)
 - [ ] App mobile (React Native)
 # Quaser_board
+# quaserboard

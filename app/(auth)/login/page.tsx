@@ -7,12 +7,22 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [inviato, setInviato] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [errore, setErrore] = useState("")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    await signIn("resend", { email, redirect: false })
-    setInviato(true)
+    setErrore("")
+    try {
+      const result = await signIn("resend", { email, redirect: false })
+      if (result?.error) {
+        setErrore(result.error)
+      } else {
+        setInviato(true)
+      }
+    } catch (err: any) {
+      setErrore(err?.message ?? "Errore sconosciuto")
+    }
     setLoading(false)
   }
 
@@ -63,6 +73,11 @@ export default function LoginPage() {
             >
               {loading ? "Invio in corso..." : "Invia link di accesso"}
             </button>
+            {errore && (
+              <p className="text-xs text-red-600 text-center mt-3 bg-red-50 rounded-lg p-2">
+                Errore: {errore}
+              </p>
+            )}
             <p className="text-xs text-gray-400 text-center mt-4">
               Riceverai un link via email — nessuna password necessaria
             </p>
